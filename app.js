@@ -1,4 +1,171 @@
 // ==========================================
+// COMPONENTE: MODAL DE PROPIEDAD
+// ==========================================
+function PropertyModal({ property, onClose }) {
+  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    // Bloquear scroll del body cuando el modal está abierto
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  React.useEffect(() => {
+    // Inicializar iconos cuando el modal se abre
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }, []);
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => 
+      prev === property.images.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => 
+      prev === 0 ? property.images.length - 1 : prev - 1
+    );
+  };
+
+  const hasMultipleImages = property.images && property.images.length > 1;
+
+  return React.createElement('div', {
+    className: 'modal-overlay',
+    onClick: onClose
+  },
+    React.createElement('div', {
+      className: 'modal',
+      onClick: (e) => e.stopPropagation()
+    },
+      // Botón cerrar
+      React.createElement('button', {
+        className: 'modal-close',
+        onClick: onClose
+      }, '✕'),
+
+      // Galería grande
+      React.createElement('div', { className: 'modal-gallery' },
+        React.createElement('img', {
+          src: property.images && property.images.length > 0 
+            ? property.images[currentImageIndex] 
+            : 'https://via.placeholder.com/800x600/2c5f7c/ffffff?text=Sin+Imagen',
+          alt: property.title
+        }),
+
+        hasMultipleImages && React.createElement(React.Fragment, null,
+          React.createElement('button', {
+            className: 'gallery-nav prev',
+            onClick: prevImage
+          }, '←'),
+          React.createElement('button', {
+            className: 'gallery-nav next',
+            onClick: nextImage
+          }, '→'),
+          React.createElement('div', { className: 'gallery-indicator' },
+            `${currentImageIndex + 1} / ${property.images.length}`
+          )
+        ),
+
+        property.badge && React.createElement('div', {
+          className: `property-badge ${property.badge.toLowerCase().replace(' ', '-')}`,
+          style: { position: 'absolute', top: '1rem', left: '1rem', zIndex: 10 }
+        }, property.badge),
+
+        React.createElement('div', {
+          className: 'property-status',
+          style: { position: 'absolute', top: '1rem', right: '1rem', zIndex: 10 }
+        }, property.status === 'venta' ? 'EN VENTA' : 'EN ALQUILER')
+      ),
+
+      // Contenido del modal
+      React.createElement('div', { className: 'modal-content' },
+        React.createElement('div', { className: 'modal-header' },
+          React.createElement('div', null,
+            React.createElement('div', { className: 'modal-price' },
+              formatPrice(property.price),
+              property.status === 'alquiler' && React.createElement('span', { 
+                style: { fontSize: '1rem', fontWeight: 400, color: '#666' }
+              }, '/mes')
+            ),
+            React.createElement('h2', { className: 'modal-title' }, property.title),
+            React.createElement('div', { className: 'modal-location' },
+              React.createElement('i', { 'data-lucide': 'map-pin', width: 20, height: 20 }),
+              React.createElement('span', null, property.location)
+            )
+          )
+        ),
+
+        // Características destacadas
+        React.createElement('div', { className: 'modal-features' },
+          property.area > 0 && React.createElement('div', { className: 'modal-feature' },
+            React.createElement('i', { 'data-lucide': 'maximize', width: 24, height: 24 }),
+            React.createElement('div', { className: 'modal-feature-value' }, property.area, 'm²'),
+            React.createElement('div', { className: 'modal-feature-label' }, 'Área')
+          ),
+          property.bedrooms > 0 && React.createElement('div', { className: 'modal-feature' },
+            React.createElement('i', { 'data-lucide': 'bed', width: 24, height: 24 }),
+            React.createElement('div', { className: 'modal-feature-value' }, property.bedrooms),
+            React.createElement('div', { className: 'modal-feature-label' }, 'Habitaciones')
+          ),
+          property.bathrooms > 0 && React.createElement('div', { className: 'modal-feature' },
+            React.createElement('i', { 'data-lucide': 'bath', width: 24, height: 24 }),
+            React.createElement('div', { className: 'modal-feature-value' }, property.bathrooms),
+            React.createElement('div', { className: 'modal-feature-label' }, 'Baños')
+          ),
+          React.createElement('div', { className: 'modal-feature' },
+            React.createElement('i', { 'data-lucide': 'home', width: 24, height: 24 }),
+            React.createElement('div', { className: 'modal-feature-value' }, 
+              property.type.charAt(0).toUpperCase() + property.type.slice(1)
+            ),
+            React.createElement('div', { className: 'modal-feature-label' }, 'Tipo')
+          )
+        ),
+
+        // Descripción
+        property.description && React.createElement('div', { className: 'modal-description' },
+          React.createElement('h3', null, '📝 Descripción'),
+          React.createElement('p', null, property.description)
+        ),
+
+        // Botones de acción
+        React.createElement('div', { className: 'modal-cta' },
+          React.createElement('a', {
+            href: getWhatsAppLink(property),
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            className: 'btn btn-primary btn-large btn-whatsapp'
+          },
+            React.createElement('i', { 'data-lucide': 'message-circle', width: 24, height: 24 }),
+            'Contactar por WhatsApp'
+          ),
+          React.createElement('button', {
+            className: 'btn btn-secondary btn-large',
+            onClick: () => {
+              if (navigator.share) {
+                navigator.share({
+                  title: property.title,
+                  text: `${property.title} - ${formatPrice(property.price)}`,
+                  url: window.location.href
+                });
+              } else {
+                alert('Compartir no disponible en este navegador');
+              }
+            }
+          },
+            React.createElement('i', { 'data-lucide': 'share-2', width: 24, height: 24 }),
+            'Compartir'
+          )
+        )
+      )
+    )
+  );
+}
+
+// ==========================================
 // CONFIGURACIÓN
 // ==========================================
 const CONFIG = {
@@ -269,15 +436,6 @@ const getWhatsAppLink = (property) => {
   }
   
   message += `¿Podrían darme más información?\n\n`;
-  
-  // Agregar info del asesor si existe
-  if (property.asesor) {
-    message += `📋 _Captación de: ${property.asesor}_\n`;
-    if (property.telefono_asesor) {
-      message += `📞 _Tel: ${property.telefono_asesor}_\n`;
-    }
-  }
-  
   message += `_Ref: ${ref}_`;
   
   const phone = CONFIG.WHATSAPP.replace(/\s+/g, '').replace('+', '');
@@ -287,7 +445,7 @@ const getWhatsAppLink = (property) => {
 // ==========================================
 // COMPONENTE: TARJETA DE PROPIEDAD CON GALERÍA
 // ==========================================
-function PropertyCard({ property }) {
+function PropertyCard({ property, onClick }) {
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
 
   const nextImage = (e) => {
@@ -307,7 +465,9 @@ function PropertyCard({ property }) {
   const hasMultipleImages = property.images && property.images.length > 1;
 
   return React.createElement('div', {
-    className: `property-card ${property.badge === 'VENDIDO' ? 'sold' : ''}`
+    className: `property-card ${property.badge === 'VENDIDO' ? 'sold' : ''}`,
+    onClick: () => onClick(property),
+    style: { cursor: 'pointer' }
   },
     // Imagen con galería
     React.createElement('div', { className: 'property-image' },
@@ -455,6 +615,7 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
+  const [selectedProperty, setSelectedProperty] = useState(null);
   
   const [driveService] = useState(() => 
     new PropertyService(CONFIG.API_ENDPOINT)
@@ -785,12 +946,19 @@ function App() {
           filteredProperties.map(prop => 
             React.createElement(PropertyCard, { 
               key: prop.id, 
-              property: prop 
+              property: prop,
+              onClick: setSelectedProperty
             })
           )
         )
       )
     ),
+    
+    // Modal de propiedad
+    selectedProperty && React.createElement(PropertyModal, {
+      property: selectedProperty,
+      onClose: () => setSelectedProperty(null)
+    }),
     
     React.createElement('a', {
       href: `https://wa.me/${CONFIG.WHATSAPP.replace(/\s+/g, '').replace('+', '')}?text=Hola! Me interesa conocer más sobre sus propiedades`,

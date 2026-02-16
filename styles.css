@@ -1,4 +1,244 @@
 /* ============================================
+   MODAL DE PROPIEDAD
+   ============================================ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 1000px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 11;
+  box-shadow: var(--shadow-lg);
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: #f5f5f5;
+  transform: scale(1.1);
+}
+
+.modal-gallery {
+  position: relative;
+  height: 500px;
+  background: #000;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+}
+
+.modal-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.9);
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  z-index: 10;
+}
+
+.gallery-nav:hover {
+  background: white;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: var(--shadow-lg);
+}
+
+.gallery-nav.prev {
+  left: 1rem;
+}
+
+.gallery-nav.next {
+  right: 1rem;
+}
+
+.gallery-indicator {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.modal-content {
+  padding: 2rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.modal-price {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.modal-title {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-dark);
+  line-height: 1.3;
+}
+
+.modal-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.modal-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+  background: var(--bg-light);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.modal-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.modal-feature i {
+  color: var(--primary);
+}
+
+.modal-feature-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.modal-feature-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-description {
+  margin-bottom: 2rem;
+}
+
+.modal-description h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-description p {
+  line-height: 1.8;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+.modal-cta {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-large {
+  flex: 1;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  justify-content: center;
+}
+
+.btn-whatsapp {
+  background: #25D366;
+  color: white;
+}
+
+.btn-whatsapp:hover {
+  background: #1ebd58;
+  transform: translateY(-2px);
+}
+
+/* ============================================
    PREMIUM INMOBILIARIA - ESTILOS FUSIONADOS
    ============================================ */
 
@@ -520,6 +760,29 @@ body {
   transform: scale(1.05);
 }
 
+/* Botones de navegación de galería */
+.image-nav-btn {
+  background: rgba(0,0,0,0.6) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  cursor: pointer !important;
+  font-size: 1.2rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  backdrop-filter: blur(4px) !important;
+  transition: all 0.3s ease !important;
+  z-index: 10 !important;
+}
+
+.image-nav-btn:hover {
+  background: rgba(0,0,0,0.8) !important;
+  transform: scale(1.1) !important;
+}
+
 .property-badge {
   position: absolute;
   top: 1rem;
@@ -793,6 +1056,45 @@ body {
     flex: 1;
     justify-content: center;
   }
+
+  /* Modal responsive */
+  .modal {
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .modal-gallery {
+    height: 300px;
+    border-radius: 0;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+  }
+
+  .modal-price {
+    font-size: 1.75rem;
+  }
+
+  .modal-title {
+    font-size: 1.5rem;
+  }
+
+  .modal-features {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 1.5rem;
+  }
+
+  .modal-cta {
+    flex-direction: column;
+  }
+
+  .gallery-nav {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -808,4 +1110,4 @@ body {
   .property-price {
     font-size: 1.5rem;
   }
-}
+} 
