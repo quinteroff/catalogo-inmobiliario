@@ -1,9 +1,9 @@
 // ==========================================
-// CONFIGURACIÓN GOOGLE DRIVE
+// CONFIGURACIÓN
 // ==========================================
 const CONFIG = {
-  API_KEY: 'AIzaSyAsP2F8S1zNoE2Fv0D_vkBVE0uKA6HNedM',
-  FOLDER_ID: '1WrHC9IL6vqZBFRStYV7mR70CUFquSzUC',
+  // La API Key ahora está protegida en el backend
+  API_ENDPOINT: '/api/properties',
   WHATSAPP: '+58 414 078 6961',
   AUTO_REFRESH_MINUTES: 5,
   CACHE_DURATION_MINUTES: 5
@@ -101,6 +101,8 @@ class GoogleDriveService {
         status: 'venta',
         badge: '',
         featured: false,
+        asesor: '',
+        telefono_asesor: '',
         images: []
       };
 
@@ -210,6 +212,16 @@ class GoogleDriveService {
         case 'destacado':
           data.featured = value.toLowerCase() === 'true' || value === '1';
           break;
+        case 'asesor':
+        case 'agente':
+        case 'captador':
+          data.asesor = value;
+          break;
+        case 'telefono_asesor':
+        case 'telefono':
+        case 'tel_asesor':
+          data.telefono_asesor = value;
+          break;
       }
     });
     
@@ -257,6 +269,15 @@ const getWhatsAppLink = (property) => {
   }
   
   message += `¿Podrían darme más información?\n\n`;
+  
+  // Agregar info del asesor si existe
+  if (property.asesor) {
+    message += `📋 _Captación de: ${property.asesor}_\n`;
+    if (property.telefono_asesor) {
+      message += `📞 _Tel: ${property.telefono_asesor}_\n`;
+    }
+  }
+  
   message += `_Ref: ${ref}_`;
   
   const phone = CONFIG.WHATSAPP.replace(/\s+/g, '').replace('+', '');
@@ -436,7 +457,7 @@ function App() {
   const [viewMode, setViewMode] = useState('grid');
   
   const [driveService] = useState(() => 
-    new GoogleDriveService(CONFIG.API_KEY, CONFIG.FOLDER_ID)
+    new PropertyService(CONFIG.API_ENDPOINT)
   );
 
   const [filters, setFilters] = useState({
