@@ -402,6 +402,62 @@ class GoogleDriveService {
 }
 
 // ==========================================
+// SERVICIO SIMPLIFICADO (USA BACKEND)
+// ==========================================
+class PropertyService {
+  constructor(apiEndpoint) {
+    this.apiEndpoint = apiEndpoint;
+    this.cache = null;
+    this.cacheTimestamp = null;
+    this.cacheDuration = CONFIG.CACHE_DURATION_MINUTES * 60 * 1000;
+  }
+
+  hasValidCache() {
+    if (!this.cache || !this.cacheTimestamp) return false;
+    return (Date.now() - this.cacheTimestamp) < this.cacheDuration;
+  }
+
+  async getProperties(forceRefresh = false) {
+    if (!forceRefresh && this.hasValidCache()) {
+      console.log('📦 Usando datos en caché');
+      return this.cache;
+    }
+
+    try {
+      console.log('🔄 Cargando propiedades desde el servidor...');
+      
+      const response = await fetch(this.apiEndpoint);
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const properties = await response.json();
+      
+      if (!Array.isArray(properties)) {
+        throw new Error('Formato de datos inválido');
+      }
+      
+      this.cache = properties;
+      this.cacheTimestamp = Date.now();
+      
+      console.log(`✅ ${properties.length} propiedades cargadas exitosamente`);
+      
+      return properties;
+      
+    } catch (error) {
+      console.error('❌ Error cargando propiedades:', error);
+      throw error;
+    }
+  }
+
+  clearCache() {
+    this.cache = null;
+    this.cacheTimestamp = null;
+  }
+}
+
+// ==========================================
 // FUNCIONES HELPER
 // ==========================================
 const formatPrice = (price) => {
