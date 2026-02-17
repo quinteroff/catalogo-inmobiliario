@@ -290,30 +290,34 @@ const getWhatsAppLink = (property) => {
 };
 
 // ==========================================
-// COMPONENTE: TARJETA DE PROPIEDAD CON GALERÍA
+// COMPONENTE: TARJETA DE PROPIEDAD CON GALERÍA (OPTIMIZADO)
 // ==========================================
-function PropertyCard({ property, onClick }) {
+const PropertyCard = React.memo(function PropertyCard({ property, onClick }) {
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
 
-  const nextImage = (e) => {
+  const nextImage = React.useCallback((e) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) => 
       prev === property.images.length - 1 ? 0 : prev + 1
     );
-  };
+  }, [property.images.length]);
 
-  const prevImage = (e) => {
+  const prevImage = React.useCallback((e) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) => 
       prev === 0 ? property.images.length - 1 : prev - 1
     );
-  };
+  }, [property.images.length]);
+
+  const handleClick = React.useCallback(() => {
+    onClick(property);
+  }, [onClick, property]);
 
   const hasMultipleImages = property.images && property.images.length > 1;
 
   return React.createElement('div', {
     className: `property-card ${property.badge === 'VENDIDO' ? 'sold' : ''}`,
-    onClick: () => onClick(property),
+    onClick: handleClick,
     style: { cursor: 'pointer' }
   },
     // Imagen con galería
@@ -447,8 +451,11 @@ function PropertyCard({ property, onClick }) {
       )
     )
   );
-}
-
+}, (prevProps, nextProps) => {
+  // Solo re-renderizar si la propiedad cambió realmente
+  return prevProps.property.id === nextProps.property.id &&
+         prevProps.property.images.length === nextProps.property.images.length;
+});
 // ==========================================
 // COMPONENTE PRINCIPAL
 // ==========================================
