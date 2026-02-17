@@ -531,7 +531,8 @@ function App() {
     }
   }, [loading, filteredProperties, showFilters, viewMode]);
 
-  useEffect(() => {
+  // Optimización: usar useMemo en lugar de useEffect + setState
+  const filteredPropertiesMemo = React.useMemo(() => {
     let result = properties.filter(prop => {
       const matchSearch = searchTerm === '' || 
         prop.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -557,8 +558,13 @@ function App() {
       return b.price - a.price;
     });
 
-    setFilteredProperties(result);
+    return result;
   }, [searchTerm, filters, properties]);
+
+  // Actualizar estado solo cuando cambie el resultado del memo
+  useEffect(() => {
+    setFilteredProperties(filteredPropertiesMemo);
+  }, [filteredPropertiesMemo]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
