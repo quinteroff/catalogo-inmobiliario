@@ -1034,7 +1034,7 @@ function App() {
         React.createElement('div', { className: 'footer-section' },
           React.createElement('h4', null, 'Contacto'),
           React.createElement('p', null, `📱 ${CONFIG.WHATSAPP}`),
-          React.createElement('p', null, '📧 info@premiuminmobiliaria.com')
+          React.createElement('p', null, '📧 quinteroff@gmail.com')
         ),
         React.createElement('div', { className: 'footer-section' },
           React.createElement('h4', null, 'Horario'),
