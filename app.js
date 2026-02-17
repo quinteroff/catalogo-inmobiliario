@@ -1055,7 +1055,7 @@ function App() {
 const rootElement = document.getElementById('root');
 const root = ReactDOM.createRoot(rootElement);
 root.render(React.createElement(App));
-
+ 
 setTimeout(() => {
   if (window.lucide) {
     window.lucide.createIcons();

@@ -98,7 +98,7 @@ function parseInfoFile(content, baseData) {
       case 'description':
       case 'descripcion':
         data.description = value;
-        break;
+        break; 
       case 'price':
       case 'precio':
         data.price = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
