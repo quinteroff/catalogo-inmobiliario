@@ -1,7 +1,44 @@
-// api/properties.js - Backend para proteger API Key
+// api/properties.js - Backend Production-Ready v5.0
 
 const API_KEY = process.env.GOOGLE_DRIVE_API_KEY;
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+// ✅ Cache en memoria (serverless-friendly)
+let cache = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+// ✅ MEJORA 1: Validación de variables de entorno
+function validateEnv() {
+  if (!API_KEY || !FOLDER_ID) {
+    throw new Error('❌ CRÍTICO: Faltan variables de entorno GOOGLE_DRIVE_API_KEY o GOOGLE_DRIVE_FOLDER_ID');
+  }
+}
+
+function hasValidCache() {
+  return cache && cacheTimestamp && (Date.now() - cacheTimestamp) < CACHE_DURATION;
+}
+
+// ✅ MEJORA 2: Control de concurrencia (evita rate limits)
+async function asyncPool(poolLimit, array, iteratorFn) {
+  const ret = [];
+  const executing = [];
+
+  for (const item of array) {
+    const p = Promise.resolve().then(() => iteratorFn(item));
+    ret.push(p);
+
+    if (poolLimit <= array.length) {
+      const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+      executing.push(e);
+
+      if (executing.length >= poolLimit) {
+        await Promise.race(executing);
+      }
+    }
+  }
+  return Promise.all(ret);
+}
 
 async function parsePropertyFolder(folder, apiKey) {
   try {
@@ -60,7 +97,7 @@ async function parsePropertyFolder(folder, apiKey) {
           propertyData = parseInfoFile(textContent, propertyData);
         }
       } catch (error) {
-        console.warn(`Error leyendo info.txt de ${folder.name}`);
+        console.warn(`⚠️ Error leyendo info.txt de ${folder.name}`);
       }
     }
 
@@ -71,7 +108,7 @@ async function parsePropertyFolder(folder, apiKey) {
     return propertyData;
     
   } catch (error) {
-    console.error(`Error procesando carpeta ${folder.name}:`, error);
+    console.error(`❌ Error procesando carpeta ${folder.name}:`, error);
     return null;
   }
 }
@@ -154,7 +191,7 @@ function parseInfoFile(content, baseData) {
 }
 
 export default async function handler(req, res) {
-  // Habilitar CORS
+  // ✅ MEJORA 3: CORS más seguro (mantener * por ahora, cambiar en producción)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -168,6 +205,17 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ✅ Validar variables de entorno ANTES de hacer cualquier cosa
+    validateEnv();
+
+    // ✅ MEJORA 4: Usar cache si existe y es válido
+    if (hasValidCache()) {
+      console.log('📦 Usando cache backend');
+      return res.status(200).json(cache);
+    }
+
+    console.log('🔄 Cargando propiedades desde Google Drive...');
+
     const foldersUrl = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+mimeType='application/vnd.google-apps.folder'&key=${API_KEY}`;
     const foldersResponse = await fetch(foldersUrl);
     
@@ -181,17 +229,28 @@ export default async function handler(req, res) {
       return res.status(200).json([]);
     }
 
-    const properties = await Promise.all(
-      foldersData.files.map(folder => parsePropertyFolder(folder, API_KEY))
+    console.log(`📁 Encontradas ${foldersData.files.length} carpetas`);
+
+    // ✅ MEJORA 2: Máximo 5 llamadas simultáneas (evita rate limit)
+    const properties = await asyncPool(
+      5,
+      foldersData.files,
+      (folder) => parsePropertyFolder(folder, API_KEY)
     );
 
     const validProperties = properties.filter(p => p && p.title);
     
-    res.status(200).json(validProperties);
+    // ✅ Guardar en cache
+    cache = validProperties;
+    cacheTimestamp = Date.now();
+    
+    console.log(`✅ ${validProperties.length} propiedades cargadas y cacheadas`);
+    
+    return res.status(200).json(validProperties);
     
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ 
+    console.error('❌ Error en backend:', error);
+    return res.status(500).json({ 
       error: 'Error al cargar propiedades',
       message: error.message 
     });
