@@ -10,13 +10,19 @@
   
   <!-- Estilos -->
   <link rel="stylesheet" href="styles.css">
-  <!--AIzaSyAsP2F8S1zNoE2Fv0D_vkBVE0uKA6HNedM-->
+  
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
 </head>
 <body> 
   <!-- Contenedor principal de React -->
-  <div id="root"></div>
+  <div id="root">
+    <!-- Loading inicial para mejor UX -->
+    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; gap: 1rem;">
+      <div style="font-size: 3rem;">🏠</div>
+      <p style="color: #666; font-family: system-ui;">Cargando Premium Inmobiliaria...</p>
+    </div>
+  </div>
 
   <!-- React desde CDN -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -28,4 +34,4 @@
   <!-- Tu aplicación -->
   <script src="app.js"></script>
 </body>
-</html> 
+</html>

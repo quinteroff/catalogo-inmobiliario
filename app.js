@@ -35,7 +35,10 @@ function PropertyModal({ property, onClose }) {
 
   return React.createElement('div', {
     className: 'modal-overlay',
-    onClick: onClose
+    onClick: onClose,
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': 'modal-title'
   },
     React.createElement('div', {
       className: 'modal',
@@ -44,7 +47,8 @@ function PropertyModal({ property, onClose }) {
       // Botón cerrar
       React.createElement('button', {
         className: 'modal-close',
-        onClick: onClose
+        onClick: onClose,
+        'aria-label': 'Cerrar modal de propiedad'
       }, '✕'),
 
       // Galería grande
@@ -53,19 +57,25 @@ function PropertyModal({ property, onClose }) {
           src: property.images && property.images.length > 0 
             ? property.images[currentImageIndex] 
             : 'https://via.placeholder.com/800x600/2c5f7c/ffffff?text=Sin+Imagen',
-          alt: property.title
+          alt: `${property.title} - Imagen ${currentImageIndex + 1} de ${property.images?.length || 1}`
         }),
 
         hasMultipleImages && React.createElement(React.Fragment, null,
           React.createElement('button', {
             className: 'gallery-nav prev',
-            onClick: prevImage
+            onClick: prevImage,
+            'aria-label': 'Imagen anterior'
           }, '←'),
           React.createElement('button', {
             className: 'gallery-nav next',
-            onClick: nextImage
+            onClick: nextImage,
+            'aria-label': 'Siguiente imagen'
           }, '→'),
-          React.createElement('div', { className: 'gallery-indicator' },
+          React.createElement('div', { 
+            className: 'gallery-indicator',
+            'aria-live': 'polite',
+            'aria-atomic': 'true'
+          },
             `${currentImageIndex + 1} / ${property.images.length}`
           )
         ),
@@ -91,9 +101,17 @@ function PropertyModal({ property, onClose }) {
                 style: { fontSize: '1rem', fontWeight: 400, color: '#666' }
               }, '/mes')
             ),
-            React.createElement('h2', { className: 'modal-title' }, property.title),
+            React.createElement('h2', { 
+              id: 'modal-title',
+              className: 'modal-title' 
+            }, property.title),
             React.createElement('div', { className: 'modal-location' },
-              React.createElement('i', { 'data-lucide': 'map-pin', width: 20, height: 20 }),
+              React.createElement('i', { 
+                'data-lucide': 'map-pin', 
+                width: 20, 
+                height: 20,
+                'aria-hidden': 'true'
+              }),
               React.createElement('span', null, property.location)
             )
           )
@@ -169,7 +187,6 @@ function PropertyModal({ property, onClose }) {
 // CONFIGURACIÓN
 // ==========================================
 const CONFIG = {
-  // La API Key ahora está protegida en el backend
   API_ENDPOINT: '/api/properties',
   WHATSAPP: '+58 414 078 6961',
   AUTO_REFRESH_MINUTES: 5,
@@ -177,232 +194,7 @@ const CONFIG = {
 };
 
 // ==========================================
-// SERVICIO DE GOOGLE DRIVE
-// ==========================================
-class GoogleDriveService {
-  constructor(apiKey, folderId) {
-    this.apiKey = apiKey;
-    this.folderId = folderId;
-    this.cache = null;
-    this.cacheTimestamp = null;
-    this.cacheDuration = CONFIG.CACHE_DURATION_MINUTES * 60 * 1000;
-  }
-
-  hasValidCache() {
-    if (!this.cache || !this.cacheTimestamp) return false;
-    return (Date.now() - this.cacheTimestamp) < this.cacheDuration;
-  }
-
-  async getProperties(forceRefresh = false) {
-    if (!forceRefresh && this.hasValidCache()) {
-      console.log('📦 Usando datos en caché');
-      return this.cache;
-    }
-
-    try {
-      console.log('🔄 Cargando propiedades desde Google Drive...');
-      
-      const foldersUrl = `https://www.googleapis.com/drive/v3/files?q='${this.folderId}'+in+parents+and+mimeType='application/vnd.google-apps.folder'&key=${this.apiKey}`;
-      const foldersResponse = await fetch(foldersUrl);
-      
-      if (!foldersResponse.ok) {
-        throw new Error(`Error ${foldersResponse.status}: ${foldersResponse.statusText}`);
-      }
-      
-      const foldersData = await foldersResponse.json();
-      
-      if (!foldersData.files || foldersData.files.length === 0) {
-        console.warn('⚠️ No se encontraron carpetas de propiedades');
-        return [];
-      }
-
-      console.log(`📁 Encontradas ${foldersData.files.length} carpetas`);
-
-      const properties = await Promise.all(
-        foldersData.files.map(folder => this.parsePropertyFolder(folder))
-      );
-
-      const validProperties = properties.filter(p => p && p.title);
-      
-      this.cache = validProperties;
-      this.cacheTimestamp = Date.now();
-      
-      console.log(`✅ ${validProperties.length} propiedades cargadas exitosamente`);
-      
-      return validProperties;
-      
-    } catch (error) {
-      console.error('❌ Error cargando desde Google Drive:', error);
-      throw error;
-    }
-  }
-
-  async parsePropertyFolder(folder) {
-    try {
-      const filesUrl = `https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents&key=${this.apiKey}&fields=files(id,name,mimeType)`;
-      const filesResponse = await fetch(filesUrl);
-      const filesData = await filesResponse.json();
-
-      if (!filesData.files) return null;
-
-      const infoFile = filesData.files.find(f => 
-        f.name.toLowerCase() === 'info.txt' || 
-        f.name.toLowerCase() === 'datos.txt'
-      );
-
-      const imageFiles = filesData.files
-        .filter(f => f.mimeType && f.mimeType.startsWith('image/'))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      let propertyData = {
-        id: folder.id,
-        folderName: folder.name,
-        title: folder.name.replace(/^\d+-/, '').replace(/-/g, ' '),
-        description: '',
-        price: 0,
-        location: '',
-        area: 0,
-        bedrooms: 0,
-        bathrooms: 0,
-        type: 'apartamento',
-        status: 'venta',
-        badge: '',
-        featured: false,
-        asesor: '',
-        telefono_asesor: '',
-        images: []
-      };
-
-      if (infoFile) {
-        try {
-          // Verificar si es Google Doc o archivo de texto normal
-          let textUrl;
-          if (infoFile.mimeType === 'application/vnd.google-apps.document') {
-            // Es un Google Doc - usar export
-            textUrl = `https://www.googleapis.com/drive/v3/files/${infoFile.id}/export?mimeType=text/plain&key=${this.apiKey}`;
-          } else {
-            // Es un archivo de texto normal
-            textUrl = `https://www.googleapis.com/drive/v3/files/${infoFile.id}?alt=media&key=${this.apiKey}`;
-          }
-          
-          const textResponse = await fetch(textUrl);
-          
-          if (!textResponse.ok) {
-            throw new Error(`Error ${textResponse.status}: No se pudo leer info.txt`);
-          }
-          
-          const textContent = await textResponse.text();
-          propertyData = this.parseInfoFile(textContent, propertyData);
-        } catch (error) {
-          console.warn(`⚠️ Error leyendo info.txt de ${folder.name}:`, error);
-        }
-      }
-
-      propertyData.images = imageFiles.map(img => {
-        const url = `https://lh3.googleusercontent.com/d/${img.id}`;
-        console.log(`📸 Imagen encontrada: ${img.name} → ${url}`);
-        return url;
-      });
-
-      if (propertyData.images.length === 0) {
-        console.warn(`⚠️ No se encontraron imágenes en ${folder.name}`);
-      } else {
-        console.log(`✅ ${propertyData.images.length} imagen(es) cargada(s) para ${folder.name}`);
-      }
-
-      return propertyData;
-      
-    } catch (error) {
-      console.error(`Error procesando carpeta ${folder.name}:`, error);
-      return null;
-    }
-  }
-
-  parseInfoFile(content, baseData) {
-    const data = { ...baseData };
-    const lines = content.split('\n');
-    
-    lines.forEach(line => {
-      const trimmedLine = line.trim();
-      if (!trimmedLine || !trimmedLine.includes('=')) return;
-      
-      const [key, ...valueParts] = trimmedLine.split('=');
-      const value = valueParts.join('=').trim();
-      const cleanKey = key.trim().toLowerCase();
-      
-      if (!value) return;
-      
-      switch(cleanKey) {
-        case 'title':
-        case 'titulo':
-          data.title = value;
-          break;
-        case 'description':
-        case 'descripcion':
-          data.description = value;
-          break;
-        case 'price':
-        case 'precio':
-          data.price = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
-          break;
-        case 'location':
-        case 'ubicacion':
-          data.location = value;
-          break;
-        case 'area':
-        case 'metros':
-        case 'm2':
-          data.area = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
-          break;
-        case 'bedrooms':
-        case 'habitaciones':
-          data.bedrooms = parseInt(value) || 0;
-          break;
-        case 'bathrooms':
-        case 'baños':
-        case 'banos':
-          data.bathrooms = parseInt(value) || 0;
-          break;
-        case 'type':
-        case 'tipo':
-          data.type = value.toLowerCase();
-          break;
-        case 'status':
-        case 'estado':
-          data.status = value.toLowerCase();
-          break;
-        case 'badge':
-        case 'etiqueta':
-          data.badge = value.toUpperCase();
-          break;
-        case 'featured':
-        case 'destacado':
-          data.featured = value.toLowerCase() === 'true' || value === '1';
-          break;
-        case 'asesor':
-        case 'agente':
-        case 'captador':
-          data.asesor = value;
-          break;
-        case 'telefono_asesor':
-        case 'telefono':
-        case 'tel_asesor':
-          data.telefono_asesor = value;
-          break;
-      }
-    });
-    
-    return data;
-  }
-
-  clearCache() {
-    this.cache = null;
-    this.cacheTimestamp = null;
-  }
-}
-
-// ==========================================
-// SERVICIO SIMPLIFICADO (USA BACKEND)
+// SERVICIO DE PROPIEDADES (USA BACKEND)
 // ==========================================
 class PropertyService {
   constructor(apiEndpoint) {
@@ -469,7 +261,6 @@ const formatPrice = (price) => {
 };
 
 const getWhatsAppLink = (property) => {
-  // Crear referencia corta y legible
   const ref = property.folderName || property.id.substring(0, 8);
   
   let message = `Hola! Me interesa esta propiedad:\n\n`;
@@ -554,6 +345,7 @@ function PropertyCard({ property, onClick }) {
       },
         React.createElement('button', {
           onClick: prevImage,
+          'aria-label': 'Imagen anterior',
           style: {
             background: 'rgba(0,0,0,0.6)',
             color: 'white',
@@ -571,6 +363,7 @@ function PropertyCard({ property, onClick }) {
         }, '←'),
         React.createElement('button', {
           onClick: nextImage,
+          'aria-label': 'Siguiente imagen',
           style: {
             background: 'rgba(0,0,0,0.6)',
             color: 'white',
