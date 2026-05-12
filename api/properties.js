@@ -113,6 +113,35 @@ async function parsePropertyFolder(folder, apiKey) {
   }
 }
 
+// Normaliza estado: acepta VENTA, Venta, venta, EN VENTA, etc.
+function normalizeStatus(value) {
+  const v = value.toLowerCase().replace(/\s+/g, '');
+  if (v.includes('alquil') || v.includes('rent') || v.includes('arrend')) return 'alquiler';
+  return 'venta'; // default
+}
+
+// Normaliza etiqueta: unifica variantes de VENDIDO/VENDIDA/SOLD
+function normalizeBadge(value) {
+  const v = value.toLowerCase().replace(/\s+/g, '');
+  if (v.includes('vendid') || v.includes('sold') || v.includes('vend')) return 'VENDIDO';
+  if (v.includes('reserv')) return 'RESERVADO';
+  if (v.includes('oport') || v.includes('ofert')) return 'OPORTUNIDAD';
+  if (v.includes('nuevo') || v.includes('new')) return 'NUEVO';
+  if (v.includes('destac') || v.includes('feature')) return 'DESTACADO';
+  return value.toUpperCase().trim();
+}
+
+// Normaliza tipo de propiedad
+function normalizeType(value) {
+  const v = value.toLowerCase().replace(/\s+/g, '');
+  if (v.includes('apart') || v.includes('apto')) return 'apartamento';
+  if (v.includes('casa') || v.includes('house') || v.includes('chalet')) return 'casa';
+  if (v.includes('local') || v.includes('comerci') || v.includes('ofic')) return 'local';
+  if (v.includes('terren') || v.includes('lote') || v.includes('land')) return 'terreno';
+  if (v.includes('galpon') || v.includes('galpón') || v.includes('bodeg')) return 'galpon';
+  return v; // devolver tal cual si no matchea
+}
+
 function parseInfoFile(content, baseData) {
   const data = { ...baseData };
   const lines = content.split('\n');
@@ -123,7 +152,7 @@ function parseInfoFile(content, baseData) {
     
     const [key, ...valueParts] = trimmedLine.split('=');
     const value = valueParts.join('=').trim();
-    const cleanKey = key.trim().toLowerCase();
+    const cleanKey = key.trim().toLowerCase().replace(/\s+/g, '');
     
     if (!value) return;
     
@@ -151,28 +180,30 @@ function parseInfoFile(content, baseData) {
         break;
       case 'bedrooms':
       case 'habitaciones':
+      case 'hab':
         data.bedrooms = parseInt(value) || 0;
         break;
       case 'bathrooms':
       case 'baños':
       case 'banos':
+      case 'ban':
         data.bathrooms = parseInt(value) || 0;
         break;
       case 'type':
       case 'tipo':
-        data.type = value.toLowerCase();
+        data.type = normalizeType(value);
         break;
       case 'status':
       case 'estado':
-        data.status = value.toLowerCase();
+        data.status = normalizeStatus(value);
         break;
       case 'badge':
       case 'etiqueta':
-        data.badge = value.toUpperCase();
+        data.badge = value.trim() ? normalizeBadge(value) : '';
         break;
       case 'featured':
       case 'destacado':
-        data.featured = value.toLowerCase() === 'true' || value === '1';
+        data.featured = ['true','1','si','sí','yes'].includes(value.toLowerCase().trim());
         break;
       case 'asesor':
       case 'agente':
@@ -182,6 +213,7 @@ function parseInfoFile(content, baseData) {
       case 'telefono_asesor':
       case 'telefono':
       case 'tel_asesor':
+      case 'tel':
         data.telefono_asesor = value;
         break;
     }
