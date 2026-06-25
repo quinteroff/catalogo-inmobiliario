@@ -555,7 +555,7 @@ function App() {
     result.sort((a, b) => {
       if (a.featured && !b.featured) return -1;
       if (!a.featured && b.featured) return 1;
-      return b.price - a.price;
+      return (b.lastModified || 0) - (a.lastModified || 0);
     });
 
     return result;
