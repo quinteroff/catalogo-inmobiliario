@@ -81,7 +81,7 @@ function PropertyModal({ property, onClose }) {
         ),
 
         property.badge && React.createElement('div', {
-          className: `property-badge ${property.badge.toLowerCase().replace(' ', '-')}`,
+          className: `property-badge ${property.badge.toLowerCase().replace(/\s+/g, '-')}`,
           style: { position: 'absolute', top: '1rem', left: '1rem', zIndex: 10 }
         }, property.badge),
 
@@ -137,7 +137,7 @@ function PropertyModal({ property, onClose }) {
           React.createElement('div', { className: 'modal-feature' },
             React.createElement('i', { 'data-lucide': 'home', width: 24, height: 24 }),
             React.createElement('div', { className: 'modal-feature-value' }, 
-              property.type.charAt(0).toUpperCase() + property.type.slice(1)
+              formatType(property.type)
             ),
             React.createElement('div', { className: 'modal-feature-label' }, 'Tipo')
           )
@@ -189,6 +189,9 @@ function PropertyModal({ property, onClose }) {
 const CONFIG = {
   API_ENDPOINT: '/api/properties',
   WHATSAPP: '+58 414 078 6961',
+  EMAIL: 'quinteroff@gmail.com',
+  FACEBOOK_URL: 'https://facebook.com/Jose.Miguel.Quintero.Parada',
+  INSTAGRAM_URL: 'https://instagram.com/remax.josequintero',
   AUTO_REFRESH_MINUTES: 5,
   CACHE_DURATION_MINUTES: 5
 };
@@ -259,6 +262,16 @@ const formatPrice = (price) => {
     minimumFractionDigits: 0
   }).format(price);
 };
+
+const TYPE_LABELS = {
+  apartamento: 'Apartamento',
+  casa: 'Casa',
+  local: 'Local',
+  terreno: 'Terreno',
+  galpon: 'Galpón'
+};
+
+const formatType = (type) => TYPE_LABELS[type] || (type.charAt(0).toUpperCase() + type.slice(1));
 
 const getWhatsAppLink = (property) => {
   const ref = property.folderName || property.id.substring(0, 8);
@@ -404,7 +417,7 @@ const PropertyCard = React.memo(function PropertyCard({ property, onClick }) {
       
       // Badges
       property.badge && React.createElement('div', {
-        className: `property-badge ${property.badge.toLowerCase().replace(' ', '-')}`
+        className: `property-badge ${property.badge.toLowerCase().replace(/\s+/g, '-')}`
       }, property.badge),
       
       React.createElement('div', { className: 'property-status' },
@@ -437,7 +450,7 @@ const PropertyCard = React.memo(function PropertyCard({ property, onClick }) {
           React.createElement('span', null, property.bathrooms)
         )
       ),
-      React.createElement('div', { className: 'property-type' }, property.type),
+      React.createElement('div', { className: 'property-type' }, formatType(property.type)),
       React.createElement('a', {
         href: getWhatsAppLink(property),
         target: '_blank',
@@ -615,7 +628,10 @@ function App() {
       React.createElement('div', { className: 'header-content' },
         React.createElement('div', { className: 'logo' },
           React.createElement('i', { 'data-lucide': 'home', width: 32, height: 32 }),
-          'Premium Inmobiliaria'
+          React.createElement('div', { className: 'logo-text' },
+            React.createElement('span', { className: 'logo-name' }, 'Jose Miguel Quintero'),
+            React.createElement('span', { className: 'logo-subtitle' }, 'RE/MAX MOMENTUM')
+          )
         ),
         React.createElement('div', { className: 'header-actions' },
           React.createElement('button', {
@@ -735,14 +751,14 @@ function App() {
           React.createElement('div', { className: 'filter-group' },
             React.createElement('label', null, 'Tipo de Propiedad'),
             React.createElement('div', { className: 'checkbox-group' },
-              ['apartamento', 'casa', 'local', 'terreno'].map(type =>
+              ['apartamento', 'casa', 'local', 'terreno', 'galpon'].map(type =>
                 React.createElement('label', { key: type, className: 'checkbox-label' },
                   React.createElement('input', {
                     type: 'checkbox',
                     checked: filters.type.includes(type),
                     onChange: () => handleCheckboxFilter('type', type)
                   }),
-                  React.createElement('span', null, type.charAt(0).toUpperCase() + type.slice(1))
+                  React.createElement('span', null, type === 'galpon' ? 'Galpón' : type.charAt(0).toUpperCase() + type.slice(1))
                 )
               )
             )
@@ -834,13 +850,31 @@ function App() {
     React.createElement('footer', { className: 'footer' },
       React.createElement('div', { className: 'footer-content' },
         React.createElement('div', { className: 'footer-section' },
-          React.createElement('h4', null, 'Premium Inmobiliaria'),
-          React.createElement('p', null, 'Tu socio de confianza en bienes raíces. Conectamos sueños con realidades.')
+          React.createElement('h4', null, 'Jose Miguel Quintero'),
+          React.createElement('p', null, 'Asesor Inmobiliario — RE/MAX Momentum. Conectamos sueños con realidades.'),
+          React.createElement('a', {
+            className: 'footer-social-link',
+            href: CONFIG.FACEBOOK_URL,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          },
+            React.createElement('i', { 'data-lucide': 'external-link', width: 16, height: 16 }),
+            'Facebook'
+          ),
+          React.createElement('a', {
+            className: 'footer-social-link',
+            href: CONFIG.INSTAGRAM_URL,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          },
+            React.createElement('i', { 'data-lucide': 'external-link', width: 16, height: 16 }),
+            'Instagram'
+          )
         ),
         React.createElement('div', { className: 'footer-section' },
           React.createElement('h4', null, 'Contacto'),
           React.createElement('p', null, `📱 ${CONFIG.WHATSAPP}`),
-          React.createElement('p', null, '📧 quinteroff@gmail.com')
+          React.createElement('p', null, `📧 ${CONFIG.EMAIL}`)
         ),
         React.createElement('div', { className: 'footer-section' },
           React.createElement('h4', null, 'Horario'),
@@ -849,7 +883,7 @@ function App() {
         )
       ),
       React.createElement('div', { className: 'footer-bottom' },
-        React.createElement('p', null, `© ${new Date().getFullYear()} Premium Inmobiliaria. Todos los derechos reservados.`)
+        React.createElement('p', null, `© ${new Date().getFullYear()} Jose Miguel Quintero — RE/MAX Momentum. Todos los derechos reservados.`)
       )
     )
   );

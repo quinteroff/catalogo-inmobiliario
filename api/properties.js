@@ -42,7 +42,7 @@ async function asyncPool(poolLimit, array, iteratorFn) {
 
 async function parsePropertyFolder(folder, apiKey) {
   try {
-    const filesUrl = `https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType)`;
+    const filesUrl = `https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType,modifiedTime)`;
     const filesResponse = await fetch(filesUrl);
     
     if (!filesResponse.ok) {
@@ -78,8 +78,18 @@ async function parsePropertyFolder(folder, apiKey) {
       featured: false,
       asesor: '',
       telefono_asesor: '',
-      images: []
+      images: [],
+      lastModified: folder.modifiedTime ? new Date(folder.modifiedTime).getTime() : 0
     };
+
+    // ✅ FIX: lastModified real = el archivo modificado más recientemente dentro de la carpeta
+    // (antes este campo nunca se calculaba y app.js siempre ordenaba con 0 - 0 = 0)
+    const allTimestamps = filesData.files
+      .map(f => f.modifiedTime ? new Date(f.modifiedTime).getTime() : 0)
+      .filter(t => t > 0);
+    if (allTimestamps.length > 0) {
+      propertyData.lastModified = Math.max(propertyData.lastModified, ...allTimestamps);
+    }
 
     if (infoFile) {
       try {
@@ -222,11 +232,21 @@ function parseInfoFile(content, baseData) {
   return data;
 }
 
+// ✅ MEJORA 3: CORS restringido a los orígenes propios del sitio (antes era '*' abierto a cualquiera)
+const ALLOWED_ORIGINS = [
+  'https://catalogo-inmobiliario-six.vercel.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
 export default async function handler(req, res) {
-  // ✅ MEJORA 3: CORS más seguro (mantener * por ahora, cambiar en producción)
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -248,7 +268,7 @@ export default async function handler(req, res) {
 
     console.log('🔄 Cargando propiedades desde Google Drive...');
 
-    const foldersUrl = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+mimeType='application/vnd.google-apps.folder'&key=${API_KEY}`;
+    const foldersUrl = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+mimeType='application/vnd.google-apps.folder'&key=${API_KEY}&fields=files(id,name,modifiedTime)`;
     const foldersResponse = await fetch(foldersUrl);
     
     if (!foldersResponse.ok) {

@@ -852,6 +852,16 @@ body {
   color: white;
 }
 
+.property-badge.reservado {
+  background: #f0932b;
+  color: white;
+}
+
+.property-badge.oportunidad {
+  background: #27ae60;
+  color: white;
+}
+
 .property-status {
   position: absolute;
   top: 1rem;
