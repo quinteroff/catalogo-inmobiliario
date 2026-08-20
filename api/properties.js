@@ -40,9 +40,32 @@ async function asyncPool(poolLimit, array, iteratorFn) {
   return Promise.all(ret);
 }
 
+// ✅ FIX: paginación de Google Drive — sin esto se corta en 100 resultados (default de la API)
+async function fetchAllFolders(folderId, apiKey) {
+  let allFolders = [];
+  let pageToken = null;
+
+  do {
+    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+mimeType='application/vnd.google-apps.folder'&key=${apiKey}&fields=nextPageToken,files(id,name,modifiedTime)&pageSize=1000${pageToken ? `&pageToken=${pageToken}` : ''}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.files) {
+      allFolders = allFolders.concat(data.files);
+    }
+    pageToken = data.nextPageToken || null;
+  } while (pageToken);
+
+  return allFolders;
+}
+
 async function parsePropertyFolder(folder, apiKey) {
   try {
-    const filesUrl = `https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType,modifiedTime)`;
+    const filesUrl = `https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType,modifiedTime)&pageSize=1000`;
     const filesResponse = await fetch(filesUrl);
     
     if (!filesResponse.ok) {
@@ -268,14 +291,7 @@ export default async function handler(req, res) {
 
     console.log('🔄 Cargando propiedades desde Google Drive...');
 
-    const foldersUrl = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+mimeType='application/vnd.google-apps.folder'&key=${API_KEY}&fields=files(id,name,modifiedTime)`;
-    const foldersResponse = await fetch(foldersUrl);
-    
-    if (!foldersResponse.ok) {
-      throw new Error(`Error ${foldersResponse.status}: ${foldersResponse.statusText}`);
-    }
-    
-    const foldersData = await foldersResponse.json();
+    const foldersData = { files: await fetchAllFolders(FOLDER_ID, API_KEY) };
     
     if (!foldersData.files || foldersData.files.length === 0) {
       return res.status(200).json([]);
