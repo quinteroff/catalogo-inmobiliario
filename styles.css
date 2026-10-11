@@ -69,19 +69,17 @@
 .modal-gallery {
   position: relative;
   width: 100%;
-  max-height: 60vh;
+  height: 75vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #000;
-  border-radius: 16px 16px 0 0;
   overflow: hidden;
 }
 
 .modal-gallery img {
   width: 100%;
-  height: auto;
-  max-height: 60vh;
+  height: 100%;
   object-fit: contain;
   background: #000;
 }
